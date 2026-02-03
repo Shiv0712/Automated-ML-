@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Engineering</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-3xl) var(--space-xl);
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .page-title h1 {
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--space-sm);
+        }
+
+        .overview-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-xl);
+            display: inline-block;
+        }
+
+        .two-column-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: var(--space-2xl);
+        }
+
+        .config-section {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xl);
+        }
+
+        .config-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            margin-bottom: var(--space-md);
+        }
+
+        .card-subtitle {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--space-lg);
+        }
+
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .config-table th {
+            background: linear-gradient(135deg, hsla(250, 95%, 60%, 0.15), hsla(320, 85%, 55%, 0.15));
+            padding: var(--space-sm) var(--space-md);
+            text-align: left;
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .config-table td {
+            padding: var(--space-sm) var(--space-md);
+            border-bottom: 1px solid var(--color-border-light);
+            font-size: var(--font-size-sm);
+        }
+
+        .type-badge {
+            background: linear-gradient(135deg, hsla(250, 95%, 60%, 0.3), hsla(320, 85%, 55%, 0.3));
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+        }
+
+        .config-table select {
+            width: 100%;
+            padding: 4px 8px;
+            font-size: var(--font-size-xs);
+        }
+
+        .visualizations-panel {
+            position: sticky;
+            top: var(--space-xl);
+        }
+
+        .viz-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            box-shadow: var(--shadow-md);
+        }
+
+        .viz-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-md);
+        }
+
+        .viz-item {
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-xs);
+            overflow: hidden;
+            transition: all var(--transition-base);
+        }
+
+        .viz-item:hover {
+            border-color: var(--color-primary);
+            transform: scale(1.05);
+        }
+
+        .viz-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: var(--radius-sm);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--space-md) var(--space-2xl);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-top: var(--space-lg);
+            transition: all var(--transition-base);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px hsla(250, 95%, 60%, 0.4);
+        }
+
+        @media (max-width: 1024px) {
+            .two-column-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .visualizations-panel {
+                position: static;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-title">
+            <h1>🔬 Feature Engineering</h1>
+            <div class="overview-card">
+                <strong>Dataset Shape:</strong> {{ shape }}
+            </div>
+        </div>
+
+        <form action="/feature-engineering" method="post">
+            <div class="two-column-layout">
+                <!-- Left: Configuration -->
+                <div class="config-section">
+                    <!-- Feature Engineering Actions -->
+                    <div class="config-card">
+                        <div class="card-title">⚙️ Feature Engineering Actions</div>
+                        <p class="card-subtitle">Configure how to handle each column</p>
+
+                        <table class="config-table">
+                            <thead>
+                                <tr>
+                                    <th>Column name</th>
+                                    <th>Data Type</th>
+                                    <th>Missing %</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for col, dtype, missing in column_info %}
+                                <tr>
+                                    <td><strong>{{ col }}</strong></td>
+                                    <td><span class="type-badge">{{ dtype }}</span></td>
+                                    <td>{{ missing }}%</td>
+                                    <td>
+                                        <select name="{{ col }}">
+                                            <option value="do_nothing">Do Nothing</option>
+                                            <option value="drop_column">Drop Column</option>
+                                            <option value="fill_mean">Fill with Mean</option>
+                                            <option value="fill_median">Fill with Median</option>
+                                            <option value="fill_mode">Fill with Mode</option>
+                                            <option value="encode">Label Encode</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Outlier Handling -->
+                    <div class="config-card">
+                        <div class="card-title">📍 Outlier Handling</div>
+                        <p class="card-subtitle">Manage outliers in numerical columns</p>
+
+                        <table class="config-table">
+                            <thead>
+                                <tr>
+                                    <th>Column name</th>
+                                    <th>Data Type</th>
+                                    <th>Outlier Method</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for col, dtype, out_pct in outlier_info %}
+                                <tr>
+                                    <td><strong>{{ col }}</strong></td>
+                                    <td><span class="type-badge">{{ dtype }}</span></td>
+                                    <td>{{ out_pct }}%</td>
+                                    <td>
+                                        <select name="outlier_{{ col }}">
+                                            <option value="do_nothing">Do Nothing</option>
+                                            <option value="remove_rows">Remove Row</option>
+                                            <option value="fill_mean">Fill with Mean</option>
+                                            <option value="fill_median">Fill with Median</option>
+                                            <option value="fill_mode">Fill with Mode</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="config-card">
+                        <div class="card-title">🚀 Advanced Options</div>
+                        <div style="display: flex; flex-direction: column; gap: var(--space-md);">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="remove_correlated_features">
+                                <span style="margin-left: var(--space-sm);">Remove Correlated Features</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="apply_pca">
+                                <span style="margin-left: var(--space-sm);">Apply PCA</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="submit-btn">Apply Configuration</button>
+                    </div>
+                </div>
+
+                <!-- Right: Visualizations -->
+                <div class="visualizations-panel">
+                    <div class="viz-card">
+                        <div class="card-title">📊 Feature Visualizations</div>
+
+                        <div class="viz-grid">
+                            {% for plot in feature_plots %}
+                            <div class="viz-item">
+                                <img src="{{ url_for('static', filename=plot) }}" alt="Feature plot">
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        {% if corr_plot %}
+                        <div style="margin-top: var(--space-lg);">
+                            <h4 style="margin-bottom: var(--space-md); font-size: var(--font-size-base);">Correlation
+                                Heatmap</h4>
+                            <div class="viz-item" style="grid-column: span 2;">
+                                <img src="{{ url_for('static', filename=corr_plot) }}" alt="Correlation heatmap">
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

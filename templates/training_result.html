@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-3xl) var(--space-xl);
+        }
+
+        .page-head {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .page-head h1 {
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--space-sm);
+        }
+
+        .page-head p {
+            color: var(--color-text-muted);
+        }
+
+        .flash-banner {
+            background: linear-gradient(135deg, hsla(145, 65%, 50%, 0.2), hsla(145, 65%, 40%, 0.2));
+            border: 2px solid var(--color-success);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg) var(--space-xl);
+            margin-bottom: var(--space-2xl);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .results-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-lg);
+            overflow-x: auto;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .results-table thead {
+            background: linear-gradient(135deg, hsla(250, 95%, 60%, 0.2), hsla(320, 85%, 55%, 0.2));
+        }
+
+        .results-table th {
+            padding: var(--space-md) var(--space-lg);
+            text-align: left;
+            font-weight: 600;
+            font-size: var(--font-size-sm);
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .results-table td {
+            padding: var(--space-md) var(--space-lg);
+            border-bottom: 1px solid var(--color-border-light);
+            font-size: var(--font-size-sm);
+        }
+
+        .results-table tbody tr {
+            transition: background var(--transition-fast);
+        }
+
+        .results-table tbody tr:hover {
+            background: var(--color-surface-hover);
+        }
+
+        .status-success {
+            color: var(--color-success);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .status-failed {
+            color: var(--color-error);
+            font-weight: 600;
+        }
+
+        .metric {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .save-form {
+            display: flex;
+            gap: var(--space-xs);
+        }
+
+        .save-form input {
+            flex: 1;
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-xs);
+        }
+
+        .save-form button {
+            background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+            color: white;
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-xs);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .metric-badge {
+            display: inline-block;
+            padding: var(--space-xs) var(--space-sm);
+            background: linear-gradient(135deg, hsla(250, 95%, 60%, 0.3), hsla(320, 85%, 55%, 0.3));
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            margin-right: var(--space-xs);
+        }
+
+        .home-button {
+            margin-top: var(--space-2xl);
+            text-align: center;
+        }
+
+        .home-button a {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--space-md) var(--space-2xl);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all var(--transition-base);
+        }
+
+        .home-button a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px hsla(250, 95%, 60%, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-head">
+            <h1>🏆 Model Training Results</h1>
+            <p>Performance metrics for your trained models</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash-banner">
+            <span style="font-size: 1.5rem;">✅</span>
+            <div style="flex: 1;">
+                {% for message in messages %}
+                <span style="color: var(--color-success); font-weight: 600;">{{ message }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% if results %}
+        <div class="results-card">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>🤖 Algorithm</th>
+                        <th>📊 Status</th>
+                        {% if model_type in ["Binary Classification", "Multi-Class Classification"] %}
+                        <th>📈 Training Acc.</th>
+                        <th>🎯 Test Acc.</th>
+                        <th>⚖️ F1 Score</th>
+                        <th>🎯 Precision</th>
+                        <th>🔍 Recall</th>
+                        {% elif model_type == "Regression" %}
+                        <th>📉 MSE</th>
+                        <th>📊 R² Score</th>
+                        {% endif %}
+                        <th>💾 Save Model</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td><strong>{{ result.algorithm }}</strong></td>
+                        <td>
+                            {% if result.success %}
+                            <span class="status-success">
+                                <span>✓</span> Success
+                            </span>
+                            {% else %}
+                            <span class="status-failed">✗ Failed</span>
+                            {% endif %}
+                        </td>
+
+                        {% if model_type in ["Binary Classification", "Multi-Class Classification"] and result.success
+                        %}
+                        <td><span class="metric">{{ "%.4f"|format(result.Training_accuracy) }}</span></td>
+                        <td><span class="metric">{{ "%.4f"|format(result.accuracy) }}</span></td>
+                        <td><span class="metric">{{ "%.4f"|format(result.f1) }}</span></td>
+                        <td><span class="metric">{{ "%.4f"|format(result.precision) }}</span></td>
+                        <td><span class="metric">{{ "%.4f"|format(result.recall) }}</span></td>
+                        {% elif model_type == "Regression" and result.success %}
+                        <td><span class="metric">{{ "%.4f"|format(result.mse) }}</span></td>
+                        <td><span class="metric">{{ "%.4f"|format(result.r2) }}</span></td>
+                        {% elif result.success and result.anomalies_detected is defined %}
+                        <td colspan="5">
+                            <span class="metric-badge">Anomalies: {{ result.anomalies_detected }} ({{
+                                result.anomaly_percentage }})</span>
+                            <small style="color: var(--color-text-muted);">Total: {{ result.total_samples }}</small>
+                        </td>
+                        {% elif result.success and result.silhouette is defined %}
+                        <td colspan="5">
+                            <span class="metric-badge">Clusters: {{ result.n_clusters }}</span>
+                            <span class="metric-badge">Silhouette: {{ "%.4f"|format(result.silhouette) }}</span>
+                            <span class="metric-badge">DB: {{ "%.4f"|format(result.davies_bouldin) }}</span>
+                        </td>
+                        {% elif result.success %}
+                        <td colspan="5" style="color: var(--color-text-muted);">Unsupervised model trained</td>
+                        {% else %}
+                        <td colspan="5">-</td>
+                        {% endif %}
+
+                        <td>
+                            {% if result.success %}
+                            <form method="POST" action="/save_model" class="save-form">
+                                <input type="hidden" name="algorithm" value="{{ result.algorithm }}">
+                                <input type="text" name="model_name" placeholder="Enter Model Name" required>
+                                <button type="submit">Save</button>
+                            </form>
+                            {% else %}
+                            <span style="color: var(--color-text-muted);">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="home-button">
+            <a href="/">🏠 Start Over</a>
+        </div>
+        {% else %}
+        <div class="results-card" style="text-align: center; padding: var(--space-3xl);">
+            <div style="font-size: 4rem; margin-bottom: var(--space-lg);">📭</div>
+            <h3 style="color: var(--color-text-muted);">No Training Results</h3>
+            <p style="color: var(--color-text-muted); margin-bottom: var(--space-xl);">Train some models to see results
+            </p>
+            <a href="/"
+                style="background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); color: white; padding: var(--space-md) var(--space-xl); border-radius: var(--radius-lg); text-decoration: none; display: inline-block;">
+                Get Started
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+
+</html>

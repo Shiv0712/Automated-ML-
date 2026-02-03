@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Complete</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .page-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: var(--space-3xl) var(--space-xl);
+        }
+
+        .success-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-3xl) var(--space-2xl);
+            text-align: center;
+            box-shadow: var(--shadow-xl);
+            animation: scaleIn var(--transition-base) ease-out;
+        }
+
+        .celebration-icon {
+            font-size: 6rem;
+            margin-bottom: var(--space-xl);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .success-title {
+            font-size: var(--font-size-3xl);
+            color: var(--color-success);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .success-subtitle {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-base);
+            margin-bottom: var(--space-3xl);
+        }
+
+        .download-section {
+            background: linear-gradient(135deg, hsla(145, 65%, 50%, 0.1), hsla(145, 65%, 40%, 0.1));
+            border: 1px solid var(--color-success);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            margin-bottom: var(--space-xl);
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+            color: white;
+            padding: var(--space-lg) var(--space-3xl);
+            border-radius: var(--radius-xl);
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all var(--transition-base);
+            box-shadow: 0 8px 24px hsla(145, 65%, 50%, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px hsla(145, 65%, 50%, 0.4);
+        }
+
+        .file-name {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+            margin-top: var(--space-md);
+        }
+
+        .home-link {
+            display: inline-block;
+            color: var(--color-text-muted);
+            text-decoration: none;
+            font-size: var(--font-size-base);
+            transition: color var(--transition-fast);
+        }
+
+        .home-link:hover {
+            color: var(--color-primary);
+        }
+
+        .error-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-error);
+            border-radius: var(--radius-xl);
+            padding: var(--space-3xl) var(--space-2xl);
+            text-align: center;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-lg);
+        }
+
+        .error-title {
+            font-size: var(--font-size-2xl);
+            color: var(--color-error);
+            font-weight: 700;
+            margin-bottom: var(--space-md);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        {% if download_link %}
+        <div class="success-card">
+            <div class="celebration-icon">🎉</div>
+            <h2 class="success-title">Prediction Complete!</h2>
+            <p class="success-subtitle">Your dataset has been processed and predictions added</p>
+
+            <div class="download-section">
+                <a href="/Predicted Datasets/{{ download_link }}" download class="download-btn">
+                    <span>⬇️</span>
+                    <span>Download Predicted Dataset</span>
+                </a>
+                <p class="file-name">📄 {{ download_link }}</p>
+            </div>
+
+            <a href="/" class="home-link">🏠 Back to Home</a>
+        </div>
+        {% else %}
+        <div class="error-card">
+            <div class="error-icon">⚠️</div>
+            <h2 class="error-title">No File Available</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: var(--space-xl);">
+                The predicted dataset file could not be found.
+            </p>
+            <a href="/" class="home-link">🏠 Back to Home</a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+
+</html>

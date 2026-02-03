@@ -1,0 +1,25 @@
+# Python internals
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv2/
+venv/
+env/
+
+# Uploads and Temporary Data
+uploads/
+temp/
+
+# Output and Models
+Predicted Datasets/
+my_models/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db

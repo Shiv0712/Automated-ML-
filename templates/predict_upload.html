@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload for Prediction</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .page-container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: var(--space-3xl) var(--space-xl);
+    }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: var(--space-3xl);
+    }
+
+    .page-title h1 {
+      font-size: var(--font-size-3xl);
+      margin-bottom: var(--space-sm);
+    }
+
+    .model-badge {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+      font-size: var(--font-size-xl);
+    }
+
+    .upload-card {
+      background: var(--color-surface);
+      backdrop-filter: blur(var(--blur-md));
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-3xl) var(--space-2xl);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      background: var(--color-bg-light);
+      margin-bottom: var(--space-xl);
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--color-primary);
+      background: var(--color-surface-hover);
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-lg);
+    }
+
+    .upload-title {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: var(--space-sm);
+    }
+
+    .upload-subtitle {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--space-xs);
+    }
+
+    .file-info {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+    }
+
+    .file-name-display {
+      background: var(--color-surface-hover);
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      margin-top: var(--space-md);
+      font-size: var(--font-size-sm);
+      color: var(--color-primary);
+      font-weight: 600;
+      display: none;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      color: white;
+      padding: var(--space-md) var(--space-2xl);
+      border-radius: var(--radius-xl);
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      transition: all var(--transition-base);
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px hsla(250, 95%, 60%, 0.4);
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: var(--space-xl);
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+      transition: color var(--transition-fast);
+    }
+
+    .back-link:hover {
+      color: var(--color-primary);
+    }
+  </style>
+  <script>
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const display = document.getElementById('file-name-display');
+        display.textContent = `📄 ${file.name}`;
+        display.style.display = 'block';
+      }
+    }
+
+    function setupDragDrop() {
+      const zone = document.getElementById('upload-zone');
+      const input = document.getElementById('file-input');
+
+      zone.addEventListener('click', () => input.click());
+
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          input.files = files;
+          handleFileSelect({ target: { files } });
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', setupDragDrop);
+  </script>
+</head>
+
+<body>
+  <div class="page-container">
+    <div class="page-title">
+      <h1>🔮 Make Predictions</h1>
+      <div class="model-badge">{{ model_name }}</div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="{{ 'alert alert-success' if category == 'success' else 'alert alert-error' }}"
+      style="margin-bottom: var(--space-xl);">
+      {{ '✓' if category == 'success' else '✗' }} {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="upload-card">
+      <form method="post" enctype="multipart/form-data">
+        <div id="upload-zone" class="upload-zone">
+          <div class="upload-icon">📁</div>
+          <div class="upload-title">Upload Dataset</div>
+          <p class="upload-subtitle">Click to browse or drag and drop your file here</p>
+          <p class="file-info">Supported formats: CSV, Excel</p>
+          <input type="file" name="file" id="file-input" accept=".csv,.xlsx,.xls" required style="display: none;"
+            onchange="handleFileSelect(event)">
+        </div>
+
+        <div id="file-name-display" class="file-name-display"></div>
+
+        <button type="submit" class="submit-btn">
+          🚀 Generate Predictions
+        </button>
+      </form>
+
+      <a href="/" class="back-link">← Back to Home</a>
+    </div>
+  </div>
+</body>
+
+</html>

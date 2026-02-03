@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preprocessing Complete</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .page-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--space-3xl) var(--space-xl);
+        }
+
+        .success-banner {
+            background: linear-gradient(135deg, hsla(145, 65%, 50%, 0.2), hsla(145, 65%, 40%, 0.2));
+            border: 2px solid var(--color-success);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-3xl) var(--space-2xl);
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+            animation: scaleIn var(--transition-base) ease-out;
+        }
+
+        .checkmark {
+            font-size: 5rem;
+            margin-bottom: var(--space-lg);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .success-title {
+            font-size: var(--font-size-3xl);
+            color: var(--color-success);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .success-subtitle {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-base);
+        }
+
+        .stats-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stats-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-xl);
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-lg);
+        }
+
+        .stat-item {
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            text-align: center;
+            transition: all var(--transition-base);
+        }
+
+        .stat-item:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-4px);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .stat-label {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-sm);
+        }
+
+        .stat-value {
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .continue-button {
+            margin-top: var(--space-2xl);
+            width: 100%;
+            background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+            color: white;
+            padding: var(--space-lg) var(--space-2xl);
+            border-radius: var(--radius-xl);
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .continue-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px hsla(145, 65%, 50%, 0.4);
+        }
+
+        .unsupervised-notice {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="success-banner">
+            <div class="checkmark">✓</div>
+            <h2 class="success-title">Preprocessing Complete!</h2>
+            <p class="success-subtitle">Your data has been successfully prepared</p>
+        </div>
+
+        <div class="stats-card">
+            <div class="stats-header">
+                📊 Data Split Summary
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon">🏋️</div>
+                    <div class="stat-label">Training Set</div>
+                    <div class="stat-value">{{ X_train_shape }}</div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">🧪</div>
+                    <div class="stat-label">Test Set</div>
+                    <div class="stat-value">{{ X_test_shape }}</div>
+                </div>
+
+                {% if target_selected %}
+                <div class="stat-item">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-label">Labels (Train)</div>
+                    <div class="stat-value">{{ y_train_shape }}</div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-label">Labels (Test)</div>
+                    <div class="stat-value">{{ y_test_shape }}</div>
+                </div>
+                {% else %}
+                <div class="stat-item unsupervised-notice">
+                    <div class="stat-icon">ℹ️</div>
+                    <div class="stat-label">Mode</div>
+                    <div class="stat-value" style="font-size: var(--font-size-xl);">Unsupervised Learning</div>
+                    <p
+                        style="color: var(--color-text-muted); font-size: var(--font-size-sm); margin-top: var(--space-sm);">
+                        No target column selected
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+            <form action="{{ url_for('model_training') }}" method="get">
+                <button type="submit" class="continue-button">
+                    🎓 Continue to Model Training
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

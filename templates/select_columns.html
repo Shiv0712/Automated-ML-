@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Columns</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .page-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--space-3xl) var(--space-xl);
+        }
+
+        .page-header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-2xl);
+        }
+
+        .header-left h1 {
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--space-sm);
+        }
+
+        .header-left p {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+        }
+
+        .select-all-btn {
+            background: var(--color-surface-hover);
+            border: 1px solid var(--color-border);
+            color: var(--color-primary);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .select-all-btn:hover {
+            background: var(--color-surface);
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+
+        .main-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .columns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-2xl);
+        }
+
+        .column-item {
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .column-item:hover {
+            border-color: var(--color-primary);
+            background: var(--color-surface-hover);
+        }
+
+        .column-item input[type="checkbox"] {
+            margin-right: var(--space-sm);
+        }
+
+        .column-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .column-info {
+            flex: 1;
+        }
+
+        .column-name {
+            font-weight: 600;
+            font-size: var(--font-size-base);
+            color: var(--color-text);
+        }
+
+        .column-type {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            margin-top: var(--space-xs);
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--color-border-light);
+            margin: var(--space-2xl) 0;
+        }
+
+        .target-section h3 {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+            font-size: var(--font-size-xl);
+        }
+
+        .target-section .subtitle {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--space-lg);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: var(--space-xl);
+            margin-bottom: var(--space-lg);
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: var(--font-size-base);
+        }
+
+        .radio-label input {
+            margin-right: var(--space-sm);
+        }
+
+        .target-select-box {
+            display: none;
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-top: var(--space-md);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: var(--space-md);
+            margin-top: var(--space-2xl);
+        }
+
+        .btn-preprocess {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--space-md) var(--space-xl);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .btn-preprocess:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px hsla(250, 95%, 60%, 0.4);
+        }
+
+        .btn-training {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+            color: white;
+            padding: var(--space-md) var(--space-xl);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .btn-training:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px hsla(145, 65%, 50%, 0.4);
+        }
+    </style>
+    <script>
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll('input[name="columns"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+
+        function toggleTargetSelect() {
+            const targetOption = document.getElementById('target-option');
+            const yesTarget = document.getElementById('target-yes');
+            targetOption.style.display = yesTarget.checked ? 'block' : 'none';
+        }
+    </script>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-header-section">
+            <div class="header-left">
+                <h1>📋 Select Columns</h1>
+                <p>Choose columns for your AutoML model</p>
+            </div>
+            <button type="button" onclick="selectAllColumns()" class="select-all-btn">
+                Select All Columns
+            </button>
+        </div>
+
+        <div class="main-card">
+            <form method="post">
+                <div class="columns-grid">
+                    {% for col, dtype in columns %}
+                    <div class="column-item">
+                        <label class="column-label">
+                            <input type="checkbox" name="columns" value="{{ col }}">
+                            <div class="column-info">
+                                <div class="column-name">{{ col }}</div>
+                                <div class="column-type">{{ dtype }}</div>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="target-section">
+                    <h3>🎯 Target Column</h3>
+                    <p class="subtitle">Is there a target column for supervised learning?</p>
+
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="has_target" value="Yes" id="target-yes"
+                                onchange="toggleTargetSelect()">
+                            <span>Yes</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="has_target" value="No" id="target-no"
+                                onchange="toggleTargetSelect()" checked>
+                            <span>No</span>
+                        </label>
+                    </div>
+
+                    <div id="target-option" class="target-select-box">
+                        <label style="display: block; margin-bottom: var(--space-sm); font-weight: 600;">
+                            Select Target Column:
+                        </label>
+                        <select name="target_column" style="width: 100%;">
+                            {% for col, dtype in columns %}
+                            <option value="{{ col }}">{{ col }} ({{ dtype }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Date Column Section (Optional -> Required for Forecasting) -->
+                    <div style="margin-top: var(--space-xl);">
+                        <label style="display: block; margin-bottom: var(--space-sm); font-weight: 600;">
+                            📅 Select Date Column (For Time Series Forecasting):
+                        </label>
+                        <select name="date_column"
+                            style="width: 100%; padding: var(--space-md); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
+                            <option value="">-- No Date Column --</option>
+                            {% for col, dtype in columns %}
+                            <option value="{{ col }}">{{ col }} ({{ dtype }})</option>
+                            {% endfor %}
+                        </select>
+                        <p
+                            style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-xs);">
+                            Required if you plan to use Time Series Forecasting.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn-preprocess">
+                        🚀 Preprocess Data
+                    </button>
+                </div>
+            </form>
+
+            {% if show_training_button %}
+            <div class="divider"></div>
+            <form method="POST" action="{{ url_for('go_for_training') }}">
+                <button type="submit" class="btn-training">
+                    🎓 Go for Model Training
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoML Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .hero-header {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+            padding-top: var(--space-xl);
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--space-md);
+            font-weight: 700;
+        }
+
+        .hero-subtitle {
+            font-size: var(--font-size-lg);
+            color: var(--color-text-muted);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-2xl);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-xl);
+        }
+
+        .select-card,
+        .models-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-right: var(--space-sm);
+        }
+
+        .card-header-title {
+            display: flex;
+            align-items: center;
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .card-subtitle {
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-xl);
+            font-size: var(--font-size-sm);
+        }
+
+        .model-item {
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all var(--transition-base);
+        }
+
+        .model-item:hover {
+            border-color: var(--color-primary);
+            transform: translateX(4px);
+        }
+
+        .model-info {
+            flex: 1;
+        }
+
+        .model-name {
+            font-weight: 600;
+            font-size: var(--font-size-base);
+            margin-bottom: var(--space-xs);
+        }
+
+        .model-meta {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+
+        .model-actions {
+            display: flex;
+            gap: var(--space-sm);
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all var(--transition-base);
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px hsla(250, 95%, 60%, 0.4);
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, var(--color-error), var(--color-error-dark));
+            color: white;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px hsla(0, 75%, 58%, 0.4);
+        }
+
+        .primary-button {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--space-md) var(--space-xl);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-top: var(--space-lg);
+            transition: all var(--transition-base);
+        }
+
+        .primary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px hsla(250, 95%, 60%, 0.4);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-3xl) var(--space-xl);
+            color: var(--color-text-muted);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="hero-header">
+        <h1 class="hero-title">🤖 AutoML Platform</h1>
+        <p class="hero-subtitle">Select your dataset and manage trained models</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="max-width: 1200px; margin: 0 auto var(--space-xl); padding: 0 var(--space-xl);">
+        {% for category, message in messages %}
+        <div class="{{ 'alert alert-success' if category == 'success' else 'alert alert-error' }}">
+            {{ '✓' if category == 'success' else '✗' }} {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="main-grid">
+        <!-- Dataset Selection Card -->
+        <div class="select-card">
+            <div class="card-header-title">
+                <span class="card-icon">📊</span> Select Dataset
+            </div>
+            <p class="card-subtitle">Choose a table from your database</p>
+
+            <form action="/" method="post">
+                <div class="form-group">
+                    <label for="table_name"
+                        style="font-size: var(--font-size-sm); margin-bottom: var(--space-sm);">Select menu</label>
+                    <select name="table_name" id="table_name" required>
+                        <option value="">Choose a dataset...</option>
+                        {% for table in table_names %}
+                        <option value="{{ table }}">{{ table }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="primary-button">
+                    Analyze & Train Model →
+                </button>
+            </form>
+        </div>
+
+        <!-- Saved Models Card -->
+        <div class="models-card">
+            <div class="card-header-title">
+                <span class="card-icon">💾</span> Saved Models
+            </div>
+            <p class="card-subtitle">Your trained machine learning models</p>
+
+            {% if saved_models %}
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for model in saved_models %}
+                <div class="model-item">
+                    <div class="model-info">
+                        <div class="model-name">{{ model }}</div>
+                        <div class="model-meta">Ready for predictions</div>
+                    </div>
+                    <div class="model-actions">
+                        <a href="{{ url_for('predict', model_name=model) }}" class="btn-predict">
+                            Predict
+                        </a>
+                        <form method="post" action="{{ url_for('delete_model', model_name=model) }}"
+                            style="display: inline;">
+                            <button type="submit" class="btn-delete">×</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <p style="margin: 0; font-size: var(--font-size-sm);">No models saved yet</p>
+                <p style="margin-top: var(--space-xs); font-size: var(--font-size-xs);">Train your first model to get
+                    started</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>

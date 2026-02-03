@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Algorithms</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .page-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: var(--space-3xl) var(--space-xl);
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .page-title h1 {
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--space-sm);
+        }
+
+        .page-title p {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-base);
+        }
+
+        .algo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+            margin-bottom: var(--space-2xl);
+        }
+
+        .algo-card-wrapper {
+            position: relative;
+        }
+
+        .algo-card-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .algo-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(var(--blur-md));
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            text-align: center;
+            transition: all var(--transition-base);
+            cursor: pointer;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .algo-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--color-primary);
+            box-shadow: 0 8px 20px hsla(250, 95%, 60%, 0.25);
+        }
+
+        .algo-card-input:checked~.algo-card {
+            border-color: var(--color-primary);
+            background: linear-gradient(135deg, hsla(250, 95%, 60%, 0.15), hsla(320, 85%, 55%, 0.15));
+            box-shadow: 0 0 20px hsla(250, 95%, 60%, 0.3);
+        }
+
+        .algo-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .algo-name {
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .selection-counter {
+            position: fixed;
+            bottom: var(--space-3xl);
+            right: var(--space-3xl);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-full);
+            font-weight: 700;
+            font-size: var(--font-size-base);
+            box-shadow: 0 8px 24px hsla(250, 95%, 60%, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+            z-index: 100;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: center;
+        }
+
+        .btn-train {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--space-md) var(--space-3xl);
+            border-radius: var(--radius-xl);
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .btn-train:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px hsla(250, 95%, 60%, 0.4);
+        }
+
+        .btn-back {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-muted);
+            padding: var(--space-md) var(--space-xl);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-base);
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all var(--transition-base);
+        }
+
+        .btn-back:hover {
+            border-color: var(--color-text-muted);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 968px) {
+            .algo-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .algo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script>
+        function updateCounter() {
+            const checked = document.querySelectorAll('input[name="selected_algorithms"]:checked').length;
+            const counter = document.getElementById('selection-counter');
+            if (counter) {
+                counter.textContent = `${checked} algorithm${checked !== 1 ? 's' : ''} selected`;
+                counter.style.display = checked > 0 ? 'block' : 'none';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('input[name="selected_algorithms"]').forEach(input => {
+                input.addEventListener('change', updateCounter);
+            });
+            updateCounter();
+        });
+    </script>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-title">
+            <h1>⚙️ Select Algorithms</h1>
+            <p>Choose algorithms for {{ model_type }}</p>
+        </div>
+
+        <form method="POST">
+            <div class="algo-grid">
+                {% for algo in algorithms %}
+                <label class="algo-card-wrapper">
+                    <input type="checkbox" name="selected_algorithms" value="{{ algo }}" class="algo-card-input">
+                    <div class="algo-card">
+                        <div class="algo-icon">⚙️</div>
+                        <div class="algo-name">{{ algo }}</div>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="action-buttons">
+                <a href="javascript:history.back()" class="btn-back">← Back</a>
+                <button type="submit" class="btn-train">🚀 Train Selected Models</button>
+            </div>
+        </form>
+
+        <div id="selection-counter" class="selection-counter" style="display: none;">
+            0 algorithms selected
+        </div>
+    </div>
+</body>
+
+</html>
