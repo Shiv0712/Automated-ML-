@@ -188,6 +188,10 @@
                         {% elif model_type == "Regression" %}
                         <th>📉 MSE</th>
                         <th>📊 R² Score</th>
+                        {% elif model_type == "Time Series Forecasting" %}
+                        <th>📊 Eval MAPE</th>
+                        <th>📉 Eval RMSE</th>
+                        <th>📈 Eval R²</th>
                         {% endif %}
                         <th>💾 Save Model</th>
                     </tr>
@@ -206,8 +210,7 @@
                             {% endif %}
                         </td>
 
-                        {% if model_type in ["Binary Classification", "Multi-Class Classification"] and result.success
-                        %}
+                        {% if model_type in ["Binary Classification", "Multi-Class Classification"] and result.success and result.Training_accuracy is defined %}
                         <td><span class="metric">{{ "%.4f"|format(result.Training_accuracy) }}</span></td>
                         <td><span class="metric">{{ "%.4f"|format(result.accuracy) }}</span></td>
                         <td><span class="metric">{{ "%.4f"|format(result.f1) }}</span></td>
@@ -216,6 +219,10 @@
                         {% elif model_type == "Regression" and result.success %}
                         <td><span class="metric">{{ "%.4f"|format(result.mse) }}</span></td>
                         <td><span class="metric">{{ "%.4f"|format(result.r2) }}</span></td>
+                        {% elif model_type == "Time Series Forecasting" and result.success %}
+                        <td><span class="metric">{{ "%.4f"|format(result.eval_mape or 0) }}</span></td>
+                        <td><span class="metric">{{ "%.4f"|format(result.eval_rmse or 0) }}</span></td>
+                        <td><span class="metric">{{ "%.4f"|format(result.eval_r2 or 0) }}</span></td>
                         {% elif result.success and result.anomalies_detected is defined %}
                         <td colspan="5">
                             <span class="metric-badge">Anomalies: {{ result.anomalies_detected }} ({{
@@ -231,7 +238,7 @@
                         {% elif result.success %}
                         <td colspan="5" style="color: var(--color-text-muted);">Unsupervised model trained</td>
                         {% else %}
-                        <td colspan="5">-</td>
+                        <td colspan="3">-</td>
                         {% endif %}
 
                         <td>
@@ -250,6 +257,34 @@
                 </tbody>
             </table>
         </div>
+
+        {% for result in results %}
+        {% if result.has_charts and forecast_charts[result.algorithm] %}
+        <div class="results-card" style="margin-top: var(--space-2xl);">
+            <h2 style="margin-bottom: var(--space-lg);">📈 Forecast Results - {{ result.algorithm }}</h2>
+            
+            {% if forecast_charts[result.algorithm].eval_chart %}
+            <h3>Last 7 Days: Actual vs Forecasted</h3>
+            <div style="margin-bottom: var(--space-2xl);">
+                {{ forecast_charts[result.algorithm].eval_chart|safe }}
+            </div>
+            {% endif %}
+            
+            {% if forecast_charts[result.algorithm].forecast_chart %}
+            <h3>Next Day Forecast</h3>
+            <div style="margin-bottom: var(--space-2xl);">
+                {{ forecast_charts[result.algorithm].forecast_chart|safe }}
+            </div>
+            {% endif %}
+            
+            {% if result.chart_error %}
+            <div style="color: var(--color-error); padding: var(--space-md); background: var(--color-bg-light); border-radius: var(--radius-md);">
+                ⚠️ {{ result.chart_error }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
 
         <div class="home-button">
             <a href="/">🏠 Start Over</a>

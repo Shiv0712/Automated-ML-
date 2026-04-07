@@ -208,6 +208,18 @@
 
 <body>
     <div class="page-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-banner" style="margin-bottom: var(--space-2xl);">
+            {% for category, message in messages %}
+            <div style="color: {{ 'var(--color-error)' if category == 'error' else 'var(--color-success)' }};">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
         <div class="page-header-section">
             <div class="header-left">
                 <h1>📋 Select Columns</h1>

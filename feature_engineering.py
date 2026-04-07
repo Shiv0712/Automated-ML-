@@ -2,6 +2,8 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.decomposition import PCA
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Set non-GUI backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os

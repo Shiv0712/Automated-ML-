@@ -211,7 +211,7 @@
 
             if (forecastingRadio && forecastingRadio.checked) {
                 optionsSection.style.display = 'block';
-                input.forEach(input => input.required = true);
+                inputs.forEach(input => input.required = true);
             } else {
                 optionsSection.style.display = 'none';
                 inputs.forEach(input => input.required = false);
@@ -233,8 +233,20 @@
     <div class="page-container">
         <div class="page-title">
             <div class="title-icon">🎯</div>
-            <h1 class="title-text">Choose Model Type</h1>
-            <p class="title-subtitle">Select the type of machine learning task</p>
+            <h1 class="title-text">
+                {% if has_target %}
+                Choose Model Type
+                {% else %}
+                Choose Unsupervised Learning Task
+                {% endif %}
+            </h1>
+            <p class="title-subtitle">
+                {% if has_target %}
+                Select the type of supervised machine learning task
+                {% else %}
+                Select the type of unsupervised learning task for anomaly detection or clustering
+                {% endif %}
+            </p>
         </div>
 
         <form method="POST">
@@ -246,8 +258,20 @@
                     <div class="model-card">
                         <span class="selected-badge">Selected</span>
                         <span class="model-icon">🔵</span>
-                        <div class="model-title">Binary<br>Classification</div>
-                        <p class="model-description">Predict between two classes (Yes/No, True/False)</p>
+                        <div class="model-title">
+                            {% if has_target %}
+                            Binary<br>Classification
+                            {% else %}
+                            Anomaly<br>Detection
+                            {% endif %}
+                        </div>
+                        <p class="model-description">
+                            {% if has_target %}
+                            Predict between two classes (Yes/No, True/False)
+                            {% else %}
+                            Detect anomalies and outliers in your data
+                            {% endif %}
+                        </p>
                     </div>
                 </label>
 
@@ -258,12 +282,25 @@
                     <div class="model-card">
                         <span class="selected-badge">Selected</span>
                         <span class="model-icon">🎨</span>
-                        <div class="model-title">Multi-Class<br>Classification</div>
-                        <p class="model-description">Predict among multiple categories</p>
+                        <div class="model-title">
+                            {% if has_target %}
+                            Multi-Class<br>Classification
+                            {% else %}
+                            Clustering<br>Analysis
+                            {% endif %}
+                        </div>
+                        <p class="model-description">
+                            {% if has_target %}
+                            Predict among multiple categories
+                            {% else %}
+                            Group similar data points into clusters
+                            {% endif %}
+                        </p>
                     </div>
                 </label>
 
                 <!-- Regression -->
+                {% if has_target %}
                 <label class="model-card-wrapper">
                     <input type="radio" name="model_type" value="regression" class="model-card-input" required>
                     <div class="model-card">
@@ -273,9 +310,10 @@
                         <p class="model-description">Predict continuous numerical values</p>
                     </div>
                 </label>
+                {% endif %}
 
-                <!-- Time Series Forecasting (Only if Target Selected) -->
-                {% if has_target %}
+                <!-- Time Series Forecasting (Shown only if both date and target columns are selected) -->
+                {% if can_forecast %}
                 <label class="model-card-wrapper">
                     <input type="radio" name="model_type" value="forecasting" class="model-card-input" required>
                     <div class="model-card">
@@ -308,6 +346,7 @@
                         <select name="frequency" id="frequency" class="option-select">
                             <option value="" disabled selected>Select frequency...</option>
                             <option value="15min">⏱️ 15 Minute Interval</option>
+                            <option value="30min">⏱️ 30 Minute Interval</option>
                             <option value="hourly">🕐 Hourly</option>
                             <option value="daily">📅 Daily</option>
                         </select>
