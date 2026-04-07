@@ -183,7 +183,7 @@ def get_model_and_params(algo_name, model_type):
 def prefix_param_grid(param_grid, prefix):
     return {f"{prefix}__{k}": v for k, v in param_grid.items()}
 
-def train_with_grid_search(X_train, y_train, model_type, selected_algorithms, X_test=None, y_test=None, selected_columns=None, apply_pca=False, remove_corr=False):
+def train_with_grid_search(X_train, y_train, model_type, selected_algorithms, X_test=None, y_test=None, selected_columns=None, apply_pca=False, remove_corr=False, enable_tuning=True):
     """
     Trains multiple models using grid search CV based on selected algorithms
     Now uses a pipeline for preprocessing + model.
@@ -222,7 +222,7 @@ def train_with_grid_search(X_train, y_train, model_type, selected_algorithms, X_
         dataset_size = len(X_train) if X_train is not None else 0
         print("Dataset size:", dataset_size)
         try:
-            best_model, best_params = train_single_model(pipeline, param_grid, X_train, y_train, dataset_size=dataset_size)
+            best_model, best_params = train_single_model(pipeline, param_grid, X_train, y_train, dataset_size=dataset_size, enable_tuning=enable_tuning)
             print("Best Model:", best_model)
             trained_models[algo_name] = best_model
             result = {
@@ -281,7 +281,7 @@ def train_with_grid_search(X_train, y_train, model_type, selected_algorithms, X_
             })
     return results, trained_models
 
-def train_single_model(model, param_grid, X_train, y_train, cv=2, dataset_size=None):
+def train_single_model(model, param_grid, X_train, y_train, cv=2, dataset_size=None, enable_tuning=True):
     """
     Intelligently trains a single model using the best search strategy
     based on dataset size and parameter grid complexity.
@@ -297,14 +297,31 @@ def train_single_model(model, param_grid, X_train, y_train, cv=2, dataset_size=N
     Returns:
         Tuple of (best_model, best_params)
     """
-    if not param_grid:
-        model.fit(X_train, y_train)
+    if not param_grid or not enable_tuning:
+        # No tuning: fit with default parameters directly
+        if y_train is not None:
+            model.fit(X_train, y_train)
+        else:
+            model.fit(X_train)
+        if not enable_tuning:
+            print("⚡ Hyperparameter tuning disabled — using default parameters")
         return model, None
 
-    # 1. DETERMINE SCORING METRIC
+    # ========== SPECIAL HANDLING FOR UNSUPERVISED LEARNING ==========
     if y_train is None:
-        scoring = None
-    elif hasattr(y_train, 'dtype') and y_train.dtype.kind == 'f':
+        # For unsupervised models, we cannot use cross-validation scoring
+        # Instead, fit once with best parameters we can infer
+        print("🔍 Unsupervised Learning: Fitting without cross-validation scoring")
+        
+        # Build a model with default parameters and fit
+        model.fit(X_train)
+        
+        print(f"✅ Unsupervised model trained (no CV scoring available)")
+        return model, {}
+    # ================================================================
+
+    # 1. DETERMINE SCORING METRIC
+    if hasattr(y_train, 'dtype') and y_train.dtype.kind == 'f':
         scoring = 'neg_mean_squared_error'
     elif len(set(y_train)) > 2:
         scoring = 'balanced_accuracy'

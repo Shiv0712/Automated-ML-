@@ -11,7 +11,11 @@ import re
 import pickle
 import traceback
 from forecasting import train_time_series_model, create_time_series_features
- 
+
+# Set matplotlib backend to non-GUI for web server environment
+import matplotlib
+matplotlib.use('Agg')
+
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -31,6 +35,7 @@ if not os.path.exists('Predicted Datasets'):
     os.makedirs('Predicted Datasets')
  
 TRAINED_MODELS = {}
+FORECAST_CHARTS = {}  # Store Plotly charts separately to avoid session cookie overflow
 import psycopg2
  
 def get_postgres_connection():
@@ -128,6 +133,11 @@ def feature_engineering():
 
         df_engineered = perform_feature_engineering(df, actions, remove_corr, apply_pca, outlier_actions)
  
+        # Save original data before feature engineering for forecasting
+        original_path = os.path.join(app.config['TEMP_FOLDER'], 'df_original.csv')
+        df.to_csv(original_path, index=False)
+        session['original_path'] = original_path
+ 
         engineered_path = os.path.join(app.config['TEMP_FOLDER'], 'df_engineered.csv')
         df_engineered.to_csv(engineered_path, index=False)
         session['engineered_path'] = engineered_path
@@ -170,17 +180,50 @@ def select_columns():
     columns = list(zip(df_engineered.columns.tolist(), df_engineered.dtypes.astype(str).tolist()))
  
     if request.method == 'POST':
+        print("POST request received for select_columns")
         selected_columns = request.form.getlist('columns')
+        print(f"Selected columns: {selected_columns}")
+        
+        # Validate that at least one column is selected
+        if not selected_columns:
+            flash("Please select at least one column to proceed.", "error")
+            return render_template('select_columns.html', columns=columns)
+        
         has_target = request.form.get('has_target')
         target_column = request.form.get('target_column') if has_target == 'Yes' else None
+        print(f"Has target: {has_target}, Target column: {target_column}")
+        
+        # Validate target column selection
+        if has_target == 'Yes' and not target_column:
+            flash("Please select a target column or choose 'No' for unsupervised learning.", "error")
+            return render_template('select_columns.html', columns=columns)
  
         session['selected_columns'] = selected_columns
         print("see me selected columns" ,session['selected_columns'])
 
         date_column = request.form.get('date_column')
         if date_column:
-             session['date_column'] = date_column # Save date column
-
+            # Validate date column can be parsed as datetime
+            try:
+                pd.to_datetime(df_engineered[date_column], errors='raise')
+            except Exception as e:
+                flash(f"Selected date column '{date_column}' cannot be parsed as datetime: {e}", "error")
+                return render_template('select_columns.html', columns=columns)
+            
+            # Ensure date column is included in selected columns
+            if date_column not in selected_columns:
+                selected_columns.append(date_column)
+            
+            session['date_column'] = date_column  # Save date column
+ 
+        # Save the target column in session (if any)
+        session['target_column'] = target_column
+ 
+        # Keep has_target true only when an actual target is selected
+        session['has_target'] = bool(target_column)
+ 
+        # Forecasting requires both a date column and a target column.
+        session['can_forecast'] = bool(target_column and date_column)
  
         if target_column:
             X_train, X_test, y_train, y_test = preprocess_data(df_engineered, selected_columns, target_column)
@@ -189,12 +232,12 @@ def select_columns():
             pd.DataFrame(y_train).to_csv(os.path.join(app.config['TEMP_FOLDER'], 'y_train.csv'), index=False, header=False)
             pd.DataFrame(y_test).to_csv(os.path.join(app.config['TEMP_FOLDER'], 'y_test.csv'), index=False, header=False)
  
-            session['has_target'] = True
             session['y_train_shape'] = len(y_train)
             session['y_test_shape'] = len(y_test)
         else:
             X_train, X_test, _, _ = preprocess_data(df_engineered, selected_columns)
-            session['has_target'] = False
+            session.pop('y_train_shape', None)
+            session.pop('y_test_shape', None)
  
         X_train.to_csv(os.path.join(app.config['TEMP_FOLDER'], 'X_train.csv'), index=False)
         X_test.to_csv(os.path.join(app.config['TEMP_FOLDER'], 'X_test.csv'), index=False)
@@ -202,6 +245,7 @@ def select_columns():
         session['X_train_shape'] = X_train.shape
         session['X_test_shape'] = X_test.shape
  
+        print(f"Preprocessing completed. Redirecting to preprocessing_result. X_train shape: {X_train.shape}, X_test shape: {X_test.shape}")
         return redirect(url_for('preprocessing_result'))
  
     return render_template('select_columns.html', columns=columns)
@@ -245,10 +289,18 @@ def model_training():
         if form_model_type == 'forecasting':
             session['forecasting_domain'] = request.form.get('forecasting_domain')
             session['frequency'] = request.form.get('frequency')
+            # Ensure required forecasting columns are selected
+            if not session.get('can_forecast'):
+                return ("Error: Time series forecasting requires both a date column & a target column. "
+                        "Please go back and select both."), 400
 
         return redirect(url_for('select_algorithms', model_type=form_model_type))
  
-    return render_template('model_selection.html', has_target=session.get('has_target'))
+    return render_template(
+        'model_selection.html',
+        has_target=session.get('has_target'),
+        can_forecast=session.get('can_forecast', False)
+    )
  
 @app.route('/select-algorithms/<model_type>', methods=['GET', 'POST'])
 def select_algorithms(model_type):
@@ -273,11 +325,12 @@ def select_algorithms(model_type):
     }
  
     unsupervised = {
-        "Multi-Class Classification": ["KMeans", "Agglomerative Clustering"],
-       
-}
+        "Binary Classification": ["Isolation Forest", "One-Class SVM", "KMeans", "Agglomerative Clustering"],
+        "Multi-Class Classification": ["Isolation Forest", "One-Class SVM", "KMeans", "Agglomerative Clustering"],
+        "Regression": ["Isolation Forest", "One-Class SVM", "KMeans", "Agglomerative Clustering"]
+    }
     
-    forecasting_algos = ["Random Forest", "XGBoost", "Linear Regression", "Ridge"]
+    forecasting_algos = ["XGBoost", "LightGBM"]
 
     if display_model_type == 'Time Series Forecasting':
         algorithms = forecasting_algos
@@ -290,16 +343,29 @@ def select_algorithms(model_type):
             return "Error: No algorithms selected.", 400
  
         session['selected_algorithms'] = selected_algorithms
+        # Save hyperparameter tuning preference (defaults to False)
+        enable_tuning = request.form.get('enable_tuning', 'no') == 'yes'
+        session['enable_tuning'] = enable_tuning
         return redirect(url_for('train_selected_models'))
  
-    return render_template('algorithm_selection.html', model_type=display_model_type, algorithms=algorithms)
+    return render_template('algorithm_selection.html', model_type=display_model_type, algorithms=algorithms, has_target=has_target)
  
 @app.route('/train-models', methods=['GET', 'POST'])
 def train_selected_models():
     try:
-        X_train = pd.read_csv(os.path.join(app.config['TEMP_FOLDER'], 'X_train.csv'))
-        X_test = pd.read_csv(os.path.join(app.config['TEMP_FOLDER'], 'X_test.csv'))
- 
+        model_type = session.get('model_type')
+        
+        # Handle Time Series Forecasting separately - it doesn't use X_train/X_test files
+        if model_type == 'Time Series Forecasting':
+            return train_forecasting_models()
+        
+        # Regular ML training - load preprocessed data from temp folder
+        try:
+            X_train = pd.read_csv(os.path.join(app.config['TEMP_FOLDER'], 'X_train.csv'))
+            X_test = pd.read_csv(os.path.join(app.config['TEMP_FOLDER'], 'X_test.csv'))
+        except Exception as e:
+            return f"Error loading preprocessed data: {str(e)}", 500
+        
         if X_train.empty or X_test.empty:
             return "Error: X_train or X_test is empty."
  
@@ -326,52 +392,16 @@ def train_selected_models():
         selected_columns = session.get('selected_columns')
         apply_pca = session.get('apply_pca', False)
         remove_corr = session.get('remove_correlated_features', False)
+        enable_tuning = session.get('enable_tuning', False)
 
-        if not model_type or not selected_algorithms or len(selected_algorithms) == 0:
-            return "Error: Model type or selected algorithms are not specified."
+        if not selected_algorithms or len(selected_algorithms) == 0:
+            return "Error: No algorithms selected."
  
-        if model_type == 'Time Series Forecasting':
-             date_col = session.get('date_column')
-             frequency = session.get('frequency')
-             
-             # Feature Engineering for Forecasting
-             full_train = X_train.copy()
-             if y_train is not None:
-                 full_train[session.get('target_column')] = y_train
-                 
-             # Assume date_column is available in X_train (must be selected by user)
-             # If not, we fall back to index or error? 
-             # For now, we trust the flow.
-             
-             if date_col not in full_train.columns:
-                 # Try to recover from original file if possible, or error
-                 # This is tricky because X_train is processed.
-                 # Let's assume user selected it in Select Columns.
-                 pass
-
-             try:
-                 train_df_fe = create_time_series_features(full_train, session.get('target_column'), date_col, frequency)
-                 y_train_fe = train_df_fe[session.get('target_column')]
-                 X_train_fe = train_df_fe.drop(columns=[session.get('target_column'), date_col])
-                 
-                 algo_results = []
-                 algo_models = {}
-                 
-                 for algo in selected_algorithms:
-                     res, mod = train_time_series_model(X_train_fe, y_train_fe, algo)
-                     algo_results.extend(res)
-                     algo_models.update(mod)
-                     
-                 results = algo_results
-                 trained_models = algo_models
-             except Exception as e:
-                 return f"Error in Time Series Processing: {str(e)}\nMake sure you selected the Date Column in the previous step.", 500
-
-        else:
-             results, trained_models = train_with_grid_search(
-                X_train, y_train, model_type, selected_algorithms, X_test, y_test,
-                selected_columns=selected_columns, apply_pca=apply_pca, remove_corr=remove_corr
-            )
+        results, trained_models = train_with_grid_search(
+            X_train, y_train, model_type, selected_algorithms, X_test, y_test,
+            selected_columns=selected_columns, apply_pca=apply_pca, remove_corr=remove_corr,
+            enable_tuning=enable_tuning
+        )
  
         # ✅ Store training results in session
         session['training_results'] = results
@@ -384,15 +414,138 @@ def train_selected_models():
         return redirect(url_for('training_results'))
  
     except Exception as e:
-        return f"Unexpected error during model training: {str(e)}", 500
+        import traceback
         traceback.print_exc()
- 
- 
+        return f"Unexpected error during model training: {str(e)}", 500
+
+
+def train_forecasting_models():
+    """Handle time series forecasting training separately."""
+    try:
+        date_col = session.get('date_column')
+        frequency = session.get('frequency')
+        selected_algorithms = session.get('selected_algorithms')
+        
+        if not selected_algorithms or len(selected_algorithms) == 0:
+            return "Error: No algorithms selected for forecasting.", 400
+        
+        # Load the original dataset (before feature engineering) for forecasting
+        original_path = session.get('original_path')
+        if not original_path:
+            # Fallback to original uploaded file if original_path not set
+            original_path = session.get('filepath')
+        
+        if not original_path:
+            return "Error: No data file found. Please upload a dataset first.", 400
+        
+        try:
+            original_df = pd.read_csv(original_path)
+        except Exception as e:
+            return f"Error: Could not load data file: {str(e)}", 400
+        
+        # Ensure the selected timestamp and target columns exist
+        if not date_col or date_col not in original_df.columns:
+            return ("Error: Date column missing from original data. "
+                    "Please ensure you select a date column in the previous step."), 400
+        
+        target_col = session.get('target_column')
+        if not target_col or target_col not in original_df.columns:
+            return ("Error: Target column missing from original data."), 400
+
+        # Only use the date and target columns for forecasting
+        original_df = original_df[[date_col, target_col]]
+        
+        try:
+            # Validate that date column can be parsed as datetime.
+            original_df[date_col] = pd.to_datetime(original_df[date_col], errors='raise')
+        except Exception as e:
+            return (f"Error: Selected date column '{date_col}' is not valid datetime data: {e}. "
+                    "Please choose a proper timestamp column."), 400
+
+        try:
+            algo_results = []
+            algo_models = {}
+            
+            for algo in selected_algorithms:
+                print(f"Training {algo} for forecasting...")
+                from forecasting import train_forecast_on_full_data, create_interactive_forecast_charts
+                
+                results, model_data = train_forecast_on_full_data(
+                    original_df, date_col, target_col, frequency, algo
+                )
+                
+                print(f"Training completed for {algo}: success={results.get('success', False)}")
+                
+                if results['success'] and model_data:
+                    print(f"Creating charts for {algo}...")
+                    # Create interactive charts
+                    eval_results = model_data['eval_results']
+                    next_day_forecast = model_data['next_day_forecast']
+                    full_df = model_data['full_df']
+                    
+                    # Get last 7 days data for evaluation chart
+                    last_7_actual = eval_results[[date_col, target_col]]
+                    last_7_forecast = eval_results[[date_col, 'forecasted']].rename(columns={'forecasted': target_col})
+                    
+                    # Create interactive charts
+                    fig_eval, fig_forecast = create_interactive_forecast_charts(
+                        full_df, last_7_actual, last_7_forecast, next_day_forecast, date_col, target_col
+                    )
+                    
+                    if fig_eval and fig_forecast:
+                        # Store charts in global dict instead of session to avoid cookie overflow
+                        FORECAST_CHARTS[algo] = {
+                            'eval_chart': fig_eval.to_html(full_html=False, include_plotlyjs='cdn'),
+                            'forecast_chart': fig_forecast.to_html(full_html=False, include_plotlyjs='cdn')
+                        }
+                        results['has_charts'] = True
+                        print(f"Charts created successfully for {algo}")
+                    else:
+                        results['has_charts'] = False
+                        print(f"Chart creation failed for {algo}")
+                else:
+                    results['has_charts'] = False
+                
+                algo_results.append(results)
+                if model_data and 'model' in model_data:
+                    algo_models[algo] = model_data['model']
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return f"Error in Time Series Processing: {str(e)}\nMake sure you selected the Date Column in the previous step.", 500
+
+        # Store results in session (only JSON-serializable data)
+        session['training_results'] = algo_results
+        
+        # Store trained models in global dictionary (NOT in session - models are not JSON serializable)
+        global TRAINED_MODELS
+        TRAINED_MODELS.clear()
+        TRAINED_MODELS.update(algo_models)
+        
+        return redirect(url_for('training_results'))
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Unexpected error during forecasting training: {str(e)}", 500
+
+
 @app.route('/training-results')
 def training_results():
     results = session.get('training_results', [])
     model_type = session.get('model_type', '')
-    return render_template('training_result.html', results=results, model_type=model_type)
+    return render_template('training_result.html', results=results, model_type=model_type, forecast_charts=FORECAST_CHARTS)
+
+@app.route('/get-forecast-chart/<algorithm>/<chart_type>')
+def get_forecast_chart(algorithm, chart_type):
+    """Retrieve forecast chart HTML from in-memory storage."""
+    if algorithm in FORECAST_CHARTS:
+        if chart_type == 'eval':
+            return FORECAST_CHARTS[algorithm].get('eval_chart', '')
+        elif chart_type == 'forecast':
+            return FORECAST_CHARTS[algorithm].get('forecast_chart', '')
+    return ''
  
 @app.route('/save_model', methods=['POST'])
 def save_model():
